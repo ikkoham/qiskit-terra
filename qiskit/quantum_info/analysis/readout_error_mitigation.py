@@ -30,13 +30,23 @@ def backend_readout_error_mitigation(result: Result, backend: BaseBackend):
         )
 
     n_qubits = backend.configuration().n_qubits
-    readout_errors = [backend.properties().readout_error(i) for i in range(n_qubits)]
-    error_01 = error_10 = readout_errors
-    # TODO: Use error rates of 0 → 1 and 1 → 0.
+    prob_meas0_prep1 = [
+        backend.properties().qubit_property(i)["prob_meas0_prep1"][0]
+        for i in range(n_qubits)
+    ]
+    prob_meas1_prep0 = [
+        backend.properties().qubit_property(i)["prob_meas1_prep0"][0]
+        for i in range(n_qubits)
+    ]
 
     A_inv = [
         np.linalg.pinv(
-            np.matrix([[1 - error_01[i], error_10[i]], [error_01[i], 1 - error_10[i]]])
+            np.matrix(
+                [
+                    [1 - prob_meas1_prep0[i], prob_meas0_prep1[i]],
+                    [prob_meas1_prep0[i], 1 - prob_meas0_prep1[i]],
+                ]
+            )
         )
         for i in range(n_qubits)
     ]
