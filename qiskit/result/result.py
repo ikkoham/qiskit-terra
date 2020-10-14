@@ -18,6 +18,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states import statevector
+from qiskit.quantum_info.analysis.readout_error_mitigation import backend_readout_error_mitigation
 from qiskit.result.models import ExperimentResult
 from qiskit.result import postprocess
 from qiskit.result.counts import Counts
@@ -231,7 +232,7 @@ class Result:
         except KeyError:
             raise QiskitError('No memory for experiment "{}".'.format(experiment))
 
-    def get_counts(self, experiment=None):
+    def get_counts(self, experiment=None, mitigation=False, backend=None):
         """Get the histogram data of an experiment.
 
         Args:
@@ -274,6 +275,9 @@ class Result:
                 dict_list.append(statevector.Statevector(vec).probabilities_dict(decimals=15))
             else:
                 raise QiskitError('No counts for experiment "{}"'.format(key))
+
+        if mitigation:
+            dict_list = [backend_readout_error_mitigation(self, backend)]
 
         # Return first item of dict_list if size is 1
         if len(dict_list) == 1:

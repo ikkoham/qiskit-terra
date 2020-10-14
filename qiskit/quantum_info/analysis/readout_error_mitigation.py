@@ -30,12 +30,14 @@ def backend_readout_error_mitigation(result: Result, backend: BaseBackend):
         )
 
     n_qubits = backend.configuration().n_qubits
+    datetime = result.date
+    properties = backend.properties(datetime=datetime)
     prob_meas0_prep1 = [
-        backend.properties().qubit_property(i)["prob_meas0_prep1"][0]
+        properties.qubit_property(i)["prob_meas0_prep1"][0]
         for i in range(n_qubits)
     ]
     prob_meas1_prep0 = [
-        backend.properties().qubit_property(i)["prob_meas1_prep0"][0]
+        properties.qubit_property(i)["prob_meas1_prep0"][0]
         for i in range(n_qubits)
     ]
 
