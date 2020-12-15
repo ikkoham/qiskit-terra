@@ -20,6 +20,8 @@ from scipy.sparse import spmatrix
 
 from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.utils import deprecate_function
+
 from ..exceptions import OpflowError
 from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
@@ -167,7 +169,7 @@ class PauliSumOp(PrimitiveOp):
             return other.compose(new_self)
         # If self is identity, just return other.
         if not np.any(new_self.primitive.table.array):  # type: ignore
-            return other * new_self.coeff * sum(new_self.coeffs)  # type: ignore
+            return other * new_self.coeff * sum(new_self.primitive.coeffs)  # type: ignore
 
         # Both PauliSumOps
         if isinstance(other, PauliSumOp):
@@ -175,7 +177,14 @@ class PauliSumOp(PrimitiveOp):
                 new_self.primitive * other.primitive,  # type:ignore
                 coeff=new_self.coeff * other.coeff,
             )
-        # TODO: implement compose with PauliOp
+        # pylint: disable=import-outside-toplevel
+        from .pauli_op import PauliOp
+        if isinstance(other, PauliOp):
+            other_primitive = SparsePauliOp(other.primitive)
+            return PauliSumOp(
+                new_self.primitive * other_primitive,  # type:ignore
+                coeff=new_self.coeff * other.coeff,
+            )
 
         # pylint: disable=cyclic-import,import-outside-toplevel
         from ..state_fns.circuit_state_fn import CircuitStateFn
@@ -375,3 +384,21 @@ class PauliSumOp(PrimitiveOp):
             The PauliSumOp constructed from the pauli_list.
         """
         return cls(SparsePauliOp.from_list(pauli_list), coeff=coeff)
+
+    def is_zero(self) -> bool:
+        """
+        Return this operator is zero operator or not.
+        """
+        op = self.reduce()
+        primitive: SparsePauliOp = op.primitive
+        return op.coeff == 1 and len(op) == 1 and primitive.coeffs[0] == 0
+
+    @deprecate_function('The print_detail method is deprecated as of '
+            '0.17.0. It will be removed no earlier than 3 months '
+            'after the release date. You should use the str function instead.')
+    def print_details(self):
+        """
+        Return the description.
+        This method is necessary for compatibility with WeightedPauliOperator.
+        """
+        return str(self)

@@ -154,6 +154,12 @@ class PauliOp(PrimitiveOp):
             product, phase = Pauli.sgn_prod(new_self.primitive, other.primitive)
             return PrimitiveOp(product, coeff=new_self.coeff * other.coeff * phase)
 
+        if isinstance(other, PauliSumOp):
+            return PauliSumOp(
+                SparsePauliOp(new_self.primitive) * other.primitive,
+                coeff=new_self.coeff * other.coeff,
+            )
+
         # pylint: disable=cyclic-import,import-outside-toplevel
         from .circuit_op import CircuitOp
         from ..state_fns.circuit_state_fn import CircuitStateFn
