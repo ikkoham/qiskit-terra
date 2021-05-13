@@ -849,6 +849,60 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             inds = inds[new_inds]
         return inds
 
+    def commutes_with_all(self, other):
+        """Return indexes of rows that commute other.
+
+        If other is a multi-row Pauli list the returned vector indexes rows
+        of the current PauliList that commute with *all* Pauli's in other.
+        If no rows satisfy the condition the returned array will be empty.
+
+        Args:
+            other (PauliList): a single Pauli or multi-row PauliList.
+
+        Returns:
+            array: index array of the commuting rows.
+        """
+        return self._commutes_with_all(other)
+
+    def anticommutes_with_all(self, other):
+        """Return indexes of rows that commute other.
+
+        If other is a multi-row Pauli list the returned vector indexes rows
+        of the current PauliList that anti-commute with *all* Pauli's in other.
+        If no rows satisfy the condition the returned array will be empty.
+
+        Args:
+            other (PauliList): a single Pauli or multi-row PauliList.
+
+        Returns:
+            array: index array of the anti-commuting rows.
+        """
+        return self._commutes_with_all(other, anti=True)
+
+    def _commutes_with_all(self, other, anti=False):
+        """Return row indexes that commute with all rows in another PauliList.
+
+        Args:
+            other (PauliList): a PauliList.
+            anti (bool): if True return rows that anti-commute, otherwise
+                         return rows that commute (Default: False).
+
+        Returns:
+            array: index array of commuting or anti-commuting row.
+        """
+        if not isinstance(other, PauliList):
+            other = PauliList(other)
+        comms = self.commutes(other[0])
+        (inds,) = np.where(comms == int(not anti))
+        for pauli in other[1:]:
+            comms = self[inds].commutes(pauli)
+            (new_inds,) = np.where(comms == int(not anti))
+            if new_inds.size == 0:
+                # No commuting rows
+                return new_inds
+            inds = inds[new_inds]
+        return inds
+
     def evolve(self, other, qargs=None):
         r"""Evolve the Pauli by a Clifford.
 
