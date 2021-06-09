@@ -104,7 +104,7 @@ def get_measured_qubits_from_qobj(qobj):
 
 
 def build_measurement_error_mitigation_circuits(
-    qubit_list, fitter_cls, backend, backend_config=None, compile_config=None
+    qubit_list, fitter_cls, backend, backend_config=None, compile_config=None, mit_pattern=None
 ):
     """Build measurement error mitigation circuits
     Args:
@@ -113,8 +113,13 @@ def build_measurement_error_mitigation_circuits(
         backend (BaseBackend): backend instance
         backend_config (dict, optional): configuration for backend
         compile_config (dict, optional): configuration for compilation
+        mit_pattern (List[List[int]]): Qubits on which to perform the
+            measurement correction, divided to groups according to tensors.
+            If `None` and `qr` is given then assumed to be performed over the entire
+            `qr` as one group (default `None`).
+
     Returns:
-        QasmQobj: the Qobj with calibration circuits at the beginning
+        QuantumCircuit: the circuit
         list[str]: the state labels for build MeasFitter
         list[str]: the labels of the calibration circuits
     Raises:
@@ -124,6 +129,7 @@ def build_measurement_error_mitigation_circuits(
     try:
         from qiskit.ignis.mitigation.measurement import (
             complete_meas_cal,
+            tensored_meas_cal,
             CompleteMeasFitter,
             TensoredMeasFitter,
         )
@@ -144,8 +150,9 @@ def build_measurement_error_mitigation_circuits(
             qubit_list=range(len(qubit_list)), circlabel=circlabel
         )
     elif fitter_cls == TensoredMeasFitter:
-        # TODO support different calibration
-        raise QiskitError("Does not support TensoredMeasFitter yet.")
+        meas_calibs_circuits, state_labels = tensored_meas_cal(
+            mit_pattern=mit_pattern, circlabel=circlabel
+        )
     else:
         raise QiskitError("Unknown fitter {}".format(fitter_cls))
 
@@ -161,7 +168,13 @@ def build_measurement_error_mitigation_circuits(
 
 
 def build_measurement_error_mitigation_qobj(
-    qubit_list, fitter_cls, backend, backend_config=None, compile_config=None, run_config=None
+    qubit_list,
+    fitter_cls,
+    backend,
+    backend_config=None,
+    compile_config=None,
+    run_config=None,
+    mit_pattern=None,
 ):
     """
     Args:
@@ -171,6 +184,10 @@ def build_measurement_error_mitigation_qobj(
         backend_config (dict, optional): configuration for backend
         compile_config (dict, optional): configuration for compilation
         run_config (RunConfig, optional): configuration for running a circuit
+        mit_pattern (List[List[int]]): Qubits on which to perform the
+            measurement correction, divided to groups according to tensors.
+            If `None` and `qr` is given then assumed to be performed over the entire
+            `qr` as one group (default `None`).
 
     Returns:
         QasmQobj: the Qobj with calibration circuits at the beginning
@@ -184,6 +201,7 @@ def build_measurement_error_mitigation_qobj(
     try:
         from qiskit.ignis.mitigation.measurement import (
             complete_meas_cal,
+            tensored_meas_cal,
             CompleteMeasFitter,
             TensoredMeasFitter,
         )
@@ -204,8 +222,9 @@ def build_measurement_error_mitigation_qobj(
             qubit_list=range(len(qubit_list)), circlabel=circlabel
         )
     elif fitter_cls == TensoredMeasFitter:
-        # TODO support different calibration
-        raise QiskitError("Does not support TensoredMeasFitter yet.")
+        meas_calibs_circuits, state_labels = tensored_meas_cal(
+            mit_pattern=mit_pattern, circlabel=circlabel
+        )
     else:
         raise QiskitError("Unknown fitter {}".format(fitter_cls))
 

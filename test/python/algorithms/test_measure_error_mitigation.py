@@ -15,6 +15,7 @@
 import unittest
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
+from ddt import ddt, data
 from qiskit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.utils import QuantumInstance, algorithm_globals
@@ -24,13 +25,15 @@ from qiskit.algorithms.optimizers import SPSA
 from qiskit.circuit.library import EfficientSU2
 
 
+@ddt
 class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
     """Test measurement error mitigation."""
 
-    def test_measurement_error_mitigation_with_diff_qubit_order(self):
+    @data("CompleteMeasFitter", "TensoredMeasFitter")
+    def test_measurement_error_mitigation_with_diff_qubit_order(self, fitter_str):
         """measurement error mitigation with different qubit order"""
         try:
-            from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
+            from qiskit.ignis.mitigation.measurement import CompleteMeasFitter, TensoredMeasFitter
             from qiskit import Aer
             from qiskit.providers.aer import noise
         except ImportError as ex:
@@ -44,6 +47,9 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         read_err = noise.errors.readout_error.ReadoutError([[0.9, 0.1], [0.25, 0.75]])
         noise_model.add_all_qubit_readout_error(read_err)
 
+        fitter_cls = (
+            CompleteMeasFitter if fitter_str == "CompleteMeasFitter" else TensoredMeasFitter
+        )
         backend = Aer.get_backend("aer_simulator")
         quantum_instance = QuantumInstance(
             backend=backend,
@@ -51,7 +57,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             seed_transpiler=167,
             shots=1000,
             noise_model=noise_model,
-            measurement_error_mitigation_cls=CompleteMeasFitter,
+            measurement_error_mitigation_cls=fitter_cls,
             cals_matrix_refresh_period=0,
         )
         # circuit
@@ -80,10 +86,11 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
 
         self.assertRaises(QiskitError, quantum_instance.execute, [qc1, qc3])
 
-    def test_measurement_error_mitigation_with_vqe(self):
+    @data("CompleteMeasFitter", "TensoredMeasFitter")
+    def test_measurement_error_mitigation_with_vqe(self, fitter_str):
         """measurement error mitigation test with vqe"""
         try:
-            from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
+            from qiskit.ignis.mitigation.measurement import CompleteMeasFitter, TensoredMeasFitter
             from qiskit import Aer
             from qiskit.providers.aer import noise
         except ImportError as ex:
@@ -97,14 +104,16 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         read_err = noise.errors.readout_error.ReadoutError([[0.9, 0.1], [0.25, 0.75]])
         noise_model.add_all_qubit_readout_error(read_err)
 
+        fitter_cls = (
+            CompleteMeasFitter if fitter_str == "CompleteMeasFitter" else TensoredMeasFitter
+        )
         backend = Aer.get_backend("aer_simulator")
-
         quantum_instance = QuantumInstance(
             backend=backend,
             seed_simulator=167,
             seed_transpiler=167,
             noise_model=noise_model,
-            measurement_error_mitigation_cls=CompleteMeasFitter,
+            measurement_error_mitigation_cls=fitter_cls,
         )
 
         h2_hamiltonian = (
