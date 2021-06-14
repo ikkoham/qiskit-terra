@@ -549,7 +549,7 @@ class QuantumInstance:
                     )
                 elif self._meas_error_mitigation_cls == TensoredMeasFitter:
                     meas_error_mitigation_fitter = self._meas_error_mitigation_cls(
-                        cals_result, mit_pattern, state_labels, circlabel=circuit_labels
+                        cals_result, state_labels, circlabel=circuit_labels
                     )
                 else:
                     raise QiskitError("Unknown fitter {}".format(self._meas_error_mitigation_cls))
@@ -605,8 +605,10 @@ class QuantumInstance:
                     tmp_result.results = [result.results[i] for i in c_idx]
                     if curr_qubit_index == qubit_index:
                         tmp_fitter = meas_error_mitigation_fitter
-                    else:
+                    elif isinstance(meas_error_mitigation_fitter, CompleteMeasFitter):
                         tmp_fitter = meas_error_mitigation_fitter.subset_fitter(curr_qubit_index)
+                    else:
+                        raise NotImplementedError()
                     tmp_result = tmp_fitter.filter.apply(
                         tmp_result, self._meas_error_mitigation_method
                     )
